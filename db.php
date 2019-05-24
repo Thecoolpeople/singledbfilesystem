@@ -25,7 +25,7 @@
 
     //create new path
     if (!file_exists($config["savelocation"])){ mkdir($config["savelocation"], 0777);}              //if savelocation has no folder, create one
-    $names = array("sqlite", "excel", "filesystem");
+    $names = array("sqlite", "excel", "filesystem", "registrationsystem");
     for($i=0;$i<count($names);$i++)
         if (!file_exists($config["savelocation"]."/".$names[$i])){ mkdir($config["savelocation"]."/".$names[$i], 0777);}              //if savelocation has no folder, create one
 
@@ -33,7 +33,7 @@
 
     //convert data to array
     switch($params["dataformat"]){
-        case "JSON": $params["data"] = json_decode($params["data"], true); break;
+        case "JSON": $params["data"] = json_decode($params["data"], true)[0]; break;
         case "base64": $params["data"] = base64_decode($params["data"]); break;
         case "string": $params["data"] = $params["data"]; break;
         //case "XML": break;    https://stackoverflow.com/questions/6578832/how-to-convert-xml-into-array-in-php            ?????
@@ -45,9 +45,11 @@
     switch($params["mode"]){
         case "": db_help($params); break;
         case "gui": gui($params); break;
-        case "filesystem": filesystem($params); break;
-        case "sqlite": sqlite($params); break;
-        case "mysql": mysqldb($params); break;
+        case "filesystem": echo filesystem($params); break;
+        case "sqlite": echo sqlite($params); break;
+        case "mysql": echo mysqldb($params); break;
+        case "registrationsystem": echo registrationsystem($params); break;
+        default: echo "please use valid mode";
     }
 ?>
 <?php
@@ -71,35 +73,57 @@
         echo '<ul><li>dataformat=TheFormatOfTheData: Available Dataformats: JSON, base64, string</li></ul>';
 
         echo '<h1>Tutorials</h1>';
-        echo 'send all the data as get or post. The variable\'s name is json.<br>db.php?json=JSONSTRING';
-        echo '<script src="https://cdn.jsdelivr.net/gh/google/code-prettify@master/loader/run_prettify.js"></script>';
+        echo 'send all the data as get or post. The variable\'s name is json.<br>db.php?json=JSONSTRING<br>';
+        echo '<script src="https://cdn.jsdelivr.net/gh/google/code-prettify@master/loader/run_prettify.js"></script>';          //pretify the code
+        echo '<script>function show(id){ if(document.getElementById){ var mydiv = document.getElementById(id); mydiv.style.display = (mydiv.style.display==\'block\'?\'none\':\'block\');}}</script>';    //show the div
         function create_form($pw, $mode, $path, $command, $data, $dataformat){return '<form action="./db.php" method="get" target="_blank"><table><tr><td>password:</td><td><input type="text" name="password" value="'.$pw.'"/></td></tr><tr><td>mode:</td><td><input type="text" name="mode" value="'.$mode.'"/></td></tr><tr><td>path:</td><td><input type="text" name="path" value="'.$path.'"/></td></tr><tr><td>command:</td><td><input type="text" name="command" value="'.$command.'"/></td></tr><tr><td>data:</td><td><input type="text" name="data" size="'.(strlen($data)+12).'" value="'.$data.'"/></td></tr><tr><td>dataformat:</td><td><input type="text" name="dataformat" value="'.$dataformat.'"/></td></tr><tr><td><input type="submit"></td></tr></table></form>';}
         function create_pre($pw, $mode, $path, $command, $data, $dataformat){return '<pre class="prettyprint">[{<br>&nbsp;"password": "'.$pw.'",<br>&nbsp;"mode": "'.$mode.'",<br>&nbsp;"path": "'.$path.'",<br>&nbsp;"command": "'.$command.'",<br>&nbsp;"data": "'.$data.'",<br>&nbsp;"dataformat": "'.$dataformat.'"<br>}]</pre>';}
 
-        echo '<h2>sqlite</h2>';
-        echo '<h3>Create new table:</h3>';
-        echo create_pre("password", "sqlite", "test", "query", "CREATE TABLE IF NOT EXISTS player(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL DEFAULT '0', mail TEXT NOT NULL DEFAULT '0')", "string");
-        echo '<h3>insert in table:</h3>';
-        echo create_pre("password", "sqlite", "test", "query", "INSERT INTO player(name, mail) VALUES ('playername', 'email@example.com')", "string");
-        echo '<h3>select from table:</h3>';
-        echo create_pre("password", "sqlite", "test", "query", "select * from player", "string");
-        echo '<h3>Download database</h3>';
-        echo create_pre("password", "sqlite", "test", "download", "", "base64");
-        echo create_pre("password", "sqlite", "test", "download", "", "");
-        echo '<h3>Upload database</h3>';
-        echo create_pre("password", "sqlite", "test", "upload", "<-THE DATABASE->", "base64");
+        echo '<button onclick="javascript:show(\'div_sqlite\'); return false">sqlite</button><button onclick="javascript:show(\'div_filesystem\'); return false">filesystem</button><button onclick="javascript:show(\'div_registrationsystem\'); return false">registrationsystem</button>';
+        echo '<div style="display: none" id="div_sqlite">';
+            echo '<h2>sqlite</h2>';
+            echo '<h3>Create new table:</h3>';
+            echo create_pre("password", "sqlite", "test", "query", "CREATE TABLE IF NOT EXISTS player(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL DEFAULT '0', mail TEXT NOT NULL DEFAULT '0')", "string");
+            echo '<h3>insert in table:</h3>';
+            echo create_pre("password", "sqlite", "test", "query", "INSERT INTO player(name, mail) VALUES ('playername', 'email@example.com')", "string");
+            echo '<h3>select from table:</h3>';
+            echo create_pre("password", "sqlite", "test", "queryOutput", "select * from player", "string");
+            echo '<h3>Download database</h3>';
+            echo create_pre("password", "sqlite", "test", "download", "", "base64");
+            echo create_pre("password", "sqlite", "test", "download", "", "");
+            echo '<h3>Upload database</h3>';
+            echo create_pre("password", "sqlite", "test", "upload", "<-THE DATABASE->", "base64");
+        echo '</div>';
 
-        echo '<h2>filesystem</h2>';
-        echo '<h3>Write content to file:</h3>';
-        echo 'you will write Hello to the file';
-        echo create_pre("password", "filesystem", "filename", "upload", "SGFsbG8=", "base64");
-        echo '<h3>Read content from the file:</h3>';
-        echo 'get the data as string';
-        echo create_pre("password", "filesystem", "filename", "download", "", "");
-        echo 'get the data as base64';
-        echo create_pre("password", "filesystem", "filename", "download", "", "base64");
-        echo '<h3>Get md5 string from the file:</h3>';
-        echo create_pre("password", "filesystem", "filename", "getmd5", "", "");
+        echo '<div style="display: none" id="div_filesystem">';
+            echo '<h2>filesystem</h2>';
+            echo '<h3>Write content to file:</h3>';
+            echo 'you will write Hello to the file';
+            echo create_pre("password", "filesystem", "filename", "upload", "SGFsbG8=", "base64");
+            echo '<h3>Read content from the file:</h3>';
+            echo 'get the data as string';
+            echo create_pre("password", "filesystem", "filename", "download", "", "");
+            echo 'get the data as base64';
+            echo create_pre("password", "filesystem", "filename", "download", "", "base64");
+            echo '<h3>Get md5 string from the file:</h3>';
+            echo create_pre("password", "filesystem", "filename", "getmd5", "", "");
+        echo '</div>';
+
+        echo '<div style="display: none" id="div_registrationsystem">';
+            echo '<h2>registrationsystem</h2>';
+            echo 'With the User Registration System(URS) you can handle user spezific data.';
+            echo '<h3>register new user</h3>';
+            echo 'With the registerEmail, the system will look, that there is no same email';
+            echo create_pre("password", "registrationsystem", "playerfilename", "registerEmail", '[{\"name\":\"thecoolpeople\",\"mail\":\"mail@example.com\",\"password\":\"secret(please use hash!)\",\"data\":\"here you can put spezific userdata in any format!\"}]', "JSON");
+            echo 'With the registerName, the system will look, that there is no same name';
+            echo create_pre("password", "registrationsystem", "playerfilename", "registerName", '[{\"name\":\"thecoolpeople\",\"mail\":\"mail@example.com\",\"password\":\"secret(please use hash!)\",\"data\":\"here you can put spezific userdata in any format!\"}]', "JSON");
+            echo '<h3>log in user</h3>';
+            echo create_pre("password", "registrationsystem", "playerfilename", "loginName", '[{\"name\":\"thecoolpeople\",\"password\":\"secret(please use hash!)\"}]', "JSON");
+            echo create_pre("password", "registrationsystem", "playerfilename", "loginEmail", '[{\"mail\":\"mail@example.com\",\"password\":\"secret(please use hash!)\"}]', "JSON");
+            echo '<h3>update user</h3>';
+            echo '<h3>upload userdata</h3>';
+            echo '<h3>download userdata</h3>';
+        echo '</div>';
     }
 
     function gui($params){
@@ -121,10 +145,71 @@
         $db = new SQLite3($params["path"], SQLITE3_OPEN_CREATE | SQLITE3_OPEN_READWRITE);
 
         switch($params["command"]){
-            case 'download': if($params["dataformat"]=="base64") echo base64_encode(file_read($params["path"])); else echo file_read($params["path"]); break;            //download the database
-            case 'upload': file_write($params["path"], $params["data"]); break; //upload the database
+            case 'download': if($params["dataformat"]=="base64") return base64_encode(file_read($params["path"])); else return file_read($params["path"]); break;            //download the database
+            case 'upload': return file_write($params["path"], $params["data"]); break; //upload the database
 
-            case 'query': $results = sqlite_query($db, $params["data"]); $array = array(); while($row = $results->fetchArray()){for($i=0;!empty($row[$i]);$i++){unset($row[$i]);} array_push($array, $row);} echo json_encode($array); break;  //run a query in the database
+            case 'query': sqlite_query($db, $params["data"]); break;
+            case 'queryOutput': $results = sqlite_query($db, $params["data"]); $array = array(); while($row = $results->fetchArray()){ for($i=0;!empty($row[$i]);$i++){unset($row[$i]);} array_push($array, $row);} return json_encode($array); break;  //run a query in the database
+        }
+    }
+
+    function registrationsystem($params){
+        $returns = array("reg_ok"=>"register ok", "reg_not_ok"=>"register not ok", "log_ok"=>"login ok", "log_not_ok"=>"login not ok");
+        //check if file exists
+        if (!file_exists($params["path"])){
+            $sqlquery = "CREATE TABLE IF NOT EXISTS player(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL DEFAULT '0', mail TEXT NOT NULL DEFAULT '0', password TEXT NOT NULL DEFAULT '0', data BLOB NOT NULL DEFAULT '0', firstlogin DATE NOT NULL DEFAULT '0', lastlogin DATE NOT NULL DEFAULT '0')";
+            sqlite(array("path" => $params["path"], "command" => "query", "data" => $sqlquery));
+        }
+
+        $name = $params["data"]["name"];
+        $mail = $params["data"]["mail"];
+        $password = $params["data"]["password"];
+        $data = $params["data"]["data"];
+        $date = date('Y-m-d H:i:s');
+        switch($params["command"]){
+            case 'registerEmail':
+                //check if email exists
+                $sqlquery = "SELECT * FROM player WHERE mail='".$mail."'";
+                $result = sqlite(array("path" => $params["path"], "command" => "queryOutput", "data" => $sqlquery));
+                if($result == "[]"){
+                    //insert new player
+                    $sqlquery = "INSERT INTO player(name, mail, password, data, firstlogin, lastlogin) VALUES ('$name', '$mail', '$password', '$data', '$date', '$date')";
+                    sqlite(array("path" => $params["path"], "command" => "query", "data" => $sqlquery));
+                    return $returns["reg_ok"];} else return $returns["reg_not_ok"];
+                break;
+            case 'registerName':
+                //check if name exists
+                $sqlquery = "SELECT * FROM player WHERE name='".$name."'";
+                $result = sqlite(array("path" => $params["path"], "command" => "queryOutput", "data" => $sqlquery));
+                if($result == "[]"){
+                    //insert new player
+                    $sqlquery = "INSERT INTO player(name, mail, password, data, firstlogin, lastlogin) VALUES ('$name', '$mail', '$password', '$data', '$date', '$date')";
+                    sqlite(array("path" => $params["path"], "command" => "query", "data" => $sqlquery));
+                    return $returns["reg_ok"];} else return $returns["reg_not_ok"];
+                break;
+            case 'loginEmail':
+                //check if email exists
+                $sqlquery = "SELECT * FROM player WHERE mail='".$mail."'";
+                $result = sqlite(array("path" => $params["path"], "command" => "queryOutput", "data" => $sqlquery));
+                if(!($result == "[]")){
+                    //control password
+                    if(json_decode($result, true)[0]["password"] == $password)
+                        return $returns["log_ok"]; else return $returns["log_not_ok"];
+                } else return $returns["log_not_ok"];
+                break;
+            case 'loginName':
+                //check if email exists
+                $sqlquery = "SELECT * FROM player WHERE name='".$name."'";
+                $result = sqlite(array("path" => $params["path"], "command" => "queryOutput", "data" => $sqlquery));
+                if(!($result == "[]")){
+                    //control password
+                    if(json_decode($result, true)[0]["password"] == $password)
+                        return $returns["log_ok"]; else return $returns["log_not_ok"];
+                } else return $returns["log_not_ok"];
+                break;
+            case 'update': break;
+            case 'upload': break;
+            case 'download': break;
         }
     }
 
