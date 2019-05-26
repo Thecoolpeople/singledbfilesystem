@@ -118,11 +118,25 @@
             echo 'With the registerName, the system will look, that there is no same name';
             echo create_pre("password", "registrationsystem", "playerfilename", "registerName", '[{\"name\":\"thecoolpeople\",\"mail\":\"mail@example.com\",\"password\":\"secret(please use hash!)\",\"data\":\"here you can put spezific userdata in any format!\"}]', "JSON");
             echo '<h3>log in user</h3>';
-            echo create_pre("password", "registrationsystem", "playerfilename", "loginName", '[{\"name\":\"thecoolpeople\",\"password\":\"secret(please use hash!)\"}]', "JSON");
+            echo 'With the loginEmail, the system will look for the email and then controll the password';
             echo create_pre("password", "registrationsystem", "playerfilename", "loginEmail", '[{\"mail\":\"mail@example.com\",\"password\":\"secret(please use hash!)\"}]', "JSON");
+            echo 'With the loginName, the system will look for the name and then controll the password';
+            echo create_pre("password", "registrationsystem", "playerfilename", "loginName", '[{\"name\":\"thecoolpeople\",\"password\":\"secret(please use hash!)\"}]', "JSON");
             echo '<h3>update user</h3>';
+            echo 'With the updateEmail, the system will look for the email and then controll the password and then you can change mail(if not exist), name, password';
+            echo create_pre("password", "registrationsystem", "playerfilename", "updateEmail", '[{\"mail\":\"mail@example.com\",\"password\":\"secret(please use hash!)\",\"name_new\":\"username\",\"mail_new\":\"mail2@example.com\",\"password_new\":\"huhu\"}]', "JSON");
+            echo 'With the updateName, the system will look for the name and then controll the password and then you can change mail, name(if not exist), password';
+            echo create_pre("password", "registrationsystem", "playerfilename", "updateName", '[{\"name\":\"thecoolpeople\",\"password\":\"secret(please use hash!)\",\"name_new\":\"username\",\"mail_new\":\"mail2@example.com\",\"password_new\":\"huhu\"}]', "JSON");
             echo '<h3>upload userdata</h3>';
-            echo '<h3>download userdata</h3>';
+            echo 'With the uploadEmail, the system will look for the email and then controll the password and then you can upload the userdata.';
+            echo create_pre("password", "registrationsystem", "playerfilename", "uploadEmail", '[{\"email\":\"mail@example.com\",\"password\":\"secret(please use hash!)\",\"data\":\"THE DATA\"}]', "JSON");
+            echo 'With the uploadName, the system will look for the name and then controll the password and then you can upload the userdata.';
+            echo create_pre("password", "registrationsystem", "playerfilename", "uploadName", '[{\"name\":\"thecoolpeople\",\"password\":\"secret(please use hash!)\",\"data\":\"THE DATA\"}]', "JSON");
+            echo '<h3>download userdata - IN WORK</h3>';
+            echo 'With the downloadEmail, the system will look for the email and then controll the password and then you can download the userdata.';
+            echo create_pre("password", "registrationsystem", "playerfilename", "downloadEmail", '[{\"email\":\"mail@example.com\",\"password\":\"secret(please use hash!)\"}]', "JSON");
+            echo 'With the downloadName, the system will look for the name and then controll the password and then you can download the userdata.';
+            echo create_pre("password", "registrationsystem", "playerfilename", "downloadName", '[{\"name\":\"thecoolpeople\",\"password\":\"secret(please use hash!)\"}]', "JSON");
         echo '</div>';
     }
 
@@ -154,62 +168,37 @@
     }
 
     function registrationsystem($params){
-        $returns = array("reg_ok"=>"register ok", "reg_not_ok"=>"register not ok", "log_ok"=>"login ok", "log_not_ok"=>"login not ok");
+        /*
+        TODO:
+            update lastLogin @login
+        */
+        $returns = array("reg_ok"=>"register ok", "reg_not_ok"=>"register not ok", "log_ok"=>"login ok", "log_not_ok"=>"login not ok", "upd_ok"=>"update ok", "upd_not_ok"=>"update not ok", "upl_ok"=>"upload ok", "upl_not_ok"=>"upload not ok", "dow_ok"=>"downlaod ok", "dow_not_ok"=>"download not ok");
         //check if file exists
         if (!file_exists($params["path"])){
             $sqlquery = "CREATE TABLE IF NOT EXISTS player(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL DEFAULT '0', mail TEXT NOT NULL DEFAULT '0', password TEXT NOT NULL DEFAULT '0', data BLOB NOT NULL DEFAULT '0', firstlogin DATE NOT NULL DEFAULT '0', lastlogin DATE NOT NULL DEFAULT '0')";
             sqlite(array("path" => $params["path"], "command" => "query", "data" => $sqlquery));
         }
 
-        $name = $params["data"]["name"];
-        $mail = $params["data"]["mail"];
-        $password = $params["data"]["password"];
-        $data = $params["data"]["data"];
+        if(array_key_exists("name", $params["data"])) $name = $params["data"]["name"];
+        if(array_key_exists("mail", $params["data"])) $mail = $params["data"]["mail"];
+        if(array_key_exists("password", $params["data"])) $password = $params["data"]["password"];
+        if(array_key_exists("data", $params["data"])) $data = $params["data"]["data"];
         $date = date('Y-m-d H:i:s');
+
+        if(!function_exists('check_mail')){ function check_mail($params, $mail){$sqlquery = "SELECT * FROM player WHERE mail='".$mail."'"; return sqlite(array("path" => $params["path"], "command" => "queryOutput", "data" => $sqlquery));}}       //check if email exists
+        if(!function_exists('check_name')){ function check_name($params, $name){$sqlquery = "SELECT * FROM player WHERE name='".$name."'"; return sqlite(array("path" => $params["path"], "command" => "queryOutput", "data" => $sqlquery));}}       //check if name exists
+
         switch($params["command"]){
-            case 'registerEmail':
-                //check if email exists
-                $sqlquery = "SELECT * FROM player WHERE mail='".$mail."'";
-                $result = sqlite(array("path" => $params["path"], "command" => "queryOutput", "data" => $sqlquery));
-                if($result == "[]"){
-                    //insert new player
-                    $sqlquery = "INSERT INTO player(name, mail, password, data, firstlogin, lastlogin) VALUES ('$name', '$mail', '$password', '$data', '$date', '$date')";
-                    sqlite(array("path" => $params["path"], "command" => "query", "data" => $sqlquery));
-                    return $returns["reg_ok"];} else return $returns["reg_not_ok"];
-                break;
-            case 'registerName':
-                //check if name exists
-                $sqlquery = "SELECT * FROM player WHERE name='".$name."'";
-                $result = sqlite(array("path" => $params["path"], "command" => "queryOutput", "data" => $sqlquery));
-                if($result == "[]"){
-                    //insert new player
-                    $sqlquery = "INSERT INTO player(name, mail, password, data, firstlogin, lastlogin) VALUES ('$name', '$mail', '$password', '$data', '$date', '$date')";
-                    sqlite(array("path" => $params["path"], "command" => "query", "data" => $sqlquery));
-                    return $returns["reg_ok"];} else return $returns["reg_not_ok"];
-                break;
-            case 'loginEmail':
-                //check if email exists
-                $sqlquery = "SELECT * FROM player WHERE mail='".$mail."'";
-                $result = sqlite(array("path" => $params["path"], "command" => "queryOutput", "data" => $sqlquery));
-                if(!($result == "[]")){
-                    //control password
-                    if(json_decode($result, true)[0]["password"] == $password)
-                        return $returns["log_ok"]; else return $returns["log_not_ok"];
-                } else return $returns["log_not_ok"];
-                break;
-            case 'loginName':
-                //check if email exists
-                $sqlquery = "SELECT * FROM player WHERE name='".$name."'";
-                $result = sqlite(array("path" => $params["path"], "command" => "queryOutput", "data" => $sqlquery));
-                if(!($result == "[]")){
-                    //control password
-                    if(json_decode($result, true)[0]["password"] == $password)
-                        return $returns["log_ok"]; else return $returns["log_not_ok"];
-                } else return $returns["log_not_ok"];
-                break;
-            case 'update': break;
-            case 'upload': break;
-            case 'download': break;
+            case 'registerEmail': if(check_mail($params, $mail) == "[]"){/*insert new player*/ $sqlquery = "INSERT INTO player(name, mail, password, data, firstlogin, lastlogin) VALUES ('$name', '$mail', '$password', '$data', '$date', '$date')"; sqlite(array("path" => $params["path"], "command" => "query", "data" => $sqlquery)); return $returns["reg_ok"];} else return $returns["reg_not_ok"]; break;
+            case 'registerName':  if(check_name($params, $name) == "[]"){/*insert new player*/ $sqlquery = "INSERT INTO player(name, mail, password, data, firstlogin, lastlogin) VALUES ('$name', '$mail', '$password', '$data', '$date', '$date')"; sqlite(array("path" => $params["path"], "command" => "query", "data" => $sqlquery)); return $returns["reg_ok"];} else return $returns["reg_not_ok"]; break;
+            case 'loginEmail': if(!(($result = check_mail($params, $mail)) == "[]")){/*control password*/ if(json_decode($result, true)[0]["password"] == $password) return $returns["log_ok"]; else return $returns["log_not_ok"];} else return $returns["log_not_ok"]; break;
+            case 'loginName':  if(!(($result = check_name($params, $name)) == "[]")){/*control password*/ if(json_decode($result, true)[0]["password"] == $password) return $returns["log_ok"]; else return $returns["log_not_ok"];} else return $returns["log_not_ok"]; break;
+            case 'updateEmail': if(registrationsystem(array("path" => $params["path"], "command"=>"loginEmail", "data"=>array("mail"=>$mail,"password"=>$password))) == $returns["log_ok"]){/*login ok*/if(array_key_exists("name_new", $params["data"])) $name_new = $params["data"]["name_new"]; if(array_key_exists("mail_new", $params["data"])) $mail_new = $params["data"]["mail_new"]; if(array_key_exists("password_new", $params["data"])) $password_new = $params["data"]["password_new"]; if(check_mail($params, $mail_new) == "[]" || $mail_new == $mail){ $sqlquery = "UPDATE player SET "; if($name_new) $sqlquery .= "name='$name_new'"; if($mail_new){ if($name_new)$sqlquery .= ", "; $sqlquery .= "mail='$mail_new'"; if($password_new)$sqlquery .= ", ";} if($password_new) $sqlquery .= "password='$password_new'"; $sqlquery .= " WHERE mail='$mail'"; sqlite(array("path" => $params["path"], "command" => "query", "data" => $sqlquery)); return $returns["upd_ok"];} return $returns["upd_not_ok"];} return $returns["upd_not_ok"]; break;
+            case 'updateName':  if(registrationsystem(array("path" => $params["path"], "command"=>"loginName", "data"=>array("name"=>$name,"password"=>$password))) == $returns["log_ok"]){/*login ok*/ if(array_key_exists("name_new", $params["data"])) $name_new = $params["data"]["name_new"]; if(array_key_exists("mail_new", $params["data"])) $mail_new = $params["data"]["mail_new"]; if(array_key_exists("password_new", $params["data"])) $password_new = $params["data"]["password_new"]; if(check_name($params, $name_new) == "[]" || $name_new == $name){ $sqlquery = "UPDATE player SET "; if($name_new) $sqlquery .= "name='$name_new'"; if($mail_new){ if($name_new)$sqlquery .= ", "; $sqlquery .= "mail='$mail_new'"; if($password_new)$sqlquery .= ", ";} if($password_new) $sqlquery .= "password='$password_new'"; $sqlquery .= " WHERE name='$name'"; sqlite(array("path" => $params["path"], "command" => "query", "data" => $sqlquery)); return $returns["upd_ok"];} return $returns["upd_not_ok"];} return $returns["upd_not_ok"]; break;
+            case 'uploadEmail': if(registrationsystem(array("path" => $params["path"], "command"=>"loginEmail", "data"=>array("mail"=>$mail,"password"=>$password))) == $returns["log_ok"]){/*login ok*/ sqlite(array("path" => $params["path"], "command" => "query", "data" => "UPDATE player SET data='$data' WHERE mail='$mail'")); return $returns["upl_ok"];} return $returns["upl_not_ok"]; break;
+            case 'uploadName':  if(registrationsystem(array("path" => $params["path"], "command"=>"loginName", "data"=>array("name"=>$name,"password"=>$password))) == $returns["log_ok"]){/*login ok*/ sqlite(array("path" => $params["path"], "command" => "query", "data" => "UPDATE player SET data='$data' WHERE name='$name'")); return $returns["upl_ok"];} return $returns["upl_not_ok"]; break;
+            case 'downloadEmail': if(registrationsystem(array("path" => $params["path"], "command"=>"loginEmail", "data"=>array("mail"=>$mail,"password"=>$password))) == $returns["log_ok"]){/*login ok*/ sqlite(array("path" => $params["path"], "command" => "queryOutput", "data" => "SELECT * FROM player WHERE mail='$mail'"))[0]["data"]; return $returns["upl_ok"];} return $returns["upl_not_ok"]; break;
+            case 'downloadName':  if(registrationsystem(array("path" => $params["path"], "command"=>"loginName", "data"=>array("name"=>$name,"password"=>$password))) == $returns["log_ok"]){/*login ok*/ sqlite(array("path" => $params["path"], "command" => "queryOutput", "data" => "SELECT * FROM player WHERE name='$name'"))[0]["data"];  return $returns["dow_ok"];} return $returns["dow_not_ok"]; break;
         }
     }
 
